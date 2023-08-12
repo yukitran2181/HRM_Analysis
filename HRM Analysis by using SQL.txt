@@ -1,0 +1,157 @@
+
+
+
+-- Time to action
+-- Data Cleaning
+-- This step of the data analysis process usually takes up most of the time, we need to be detail-oriented to ensure that we end up with the highest quality data. According to Alex the Analyst , data cleaning includes these crucial steps :
+-- 1. Remove Duplicated data
+-- 2. Drop null values
+-- 3. Populate/input missing values
+-- 4. Filter out outliers
+-- 5. Normalize data typos/differences
+-- 6. Converting data types properly
+-- All of these 6 steps were implemented in Excel then we can give out some overviews:
+-- 1. Over 14999 records, 3008 duplicate rows found and removed.
+--    11991 unique rows remain
+-- -> we have 2 options: load the cleaning excel file to query in Big Query or clean directly in Big Query
+SELECT count(*) FROM `valiant-cycle-377703.Home_test.HRM`;
+
+-- 2. Checking the no 2,3,4,5,6, 
+-- We applied a filter on every column and found no column has NA values, thus the data set has no null values
+-- No value has any data typos as shown by looking at the filter
+-- All data are in the correct format, all data follow the same format as their columns.
+-- -> This is a relatively clean data set and not much data cleaning was needed .
+
+
+-- Prescriptive Analysis
+SELECT * 
+FROM `valiant-cycle-377703.Home_test.HRM` 
+LIMIT 10;
+-- Churn Rate
+SELECT
+  100*COUNT(CASE WHEN left_company = 1 THEN 1 ELSE NULL END)/ COUNT(*) as churn_rate
+FROM `valiant-cycle-377703.Home_test.HRM`;
+
+-- Satisfaction Score VS Employee Turnover
+SELECT left_company, 
+        round(avg(satisfaction_level),2) as mean_satisfaction
+FROM `valiant-cycle-377703.Home_test.HRM` 
+GROUP BY left_company;
+
+SELECT round(stddev(satisfaction_level),2) as std_satisfaction
+FROM `valiant-cycle-377703.Home_test.HRM`;
+
+SELECT left_company,
+        100*count(left_company)/
+        (SELECT count(*) FROM `valiant-cycle-377703.Home_test.HRM` ) as proportion
+FROM `valiant-cycle-377703.Home_test.HRM` 
+GROUP BY left_company;
+
+-- To make it more clear we will put it in Power BI to visualize
+
+SELECT *, ROUND(100*churned_employees/total_employees, 2) AS churn_rate
+FROM
+(SELECT
+  satisfaction_level
+  ,COUNT(*) AS total_employees
+  ,COUNT(CASE WHEN left_company = 1 THEN 1 ELSE NULL END) AS churned_employees
+FROM `valiant-cycle-377703.Home_test.HRM` 
+GROUP BY satisfaction_level) AS summary
+GROUP BY satisfaction_level,total_employees,churned_employees
+ORDER BY satisfaction_level;
+-- Conclusion 1: 
+-- The figures you provided show that there is a strong negative correlation between satisfaction score and employee turnover. This means that as satisfaction score decreases, employee turnover increases. The mean satisfaction score for employees who left the company is 0.44, while the mean satisfaction score for employees who stayed with the company is 0.67. This difference of 0.23 is statistically significant, as indicated by the standard deviation of 0.24.
+
+-- Analysis : Employee Turnover by Departments
+SELECT *,
+ROUND(100*churn/total_employees,2) AS turnover_rate
+FROM (
+  SELECT  
+  department,
+  sum(case when left_company = 1 then 1 else 0 end) as churn,
+  sum(case when left_company = 0 then 1 else 0 end) as stay,
+  count(*) as total_employees
+  FROM `valiant-cycle-377703.Home_test.HRM` 
+  GROUP BY department) AS fact
+GROUP BY department, churn, stay, total_employees
+ORDER BY turnover_rate DESC;
+
+-- We can see that all departments have a turnover rate to be around 16%-18%, However, four departments tend to have higher churn rate than others. They are HR, accounting, technical and support.
+-- Are promoted employees more likely to stay ?
+SELECT *,
+ROUND(100*churn/total_employees,2) AS turnover_rate,
+ROUND(100*promotion/churn,2) AS promotion_churn_rate,
+100-ROUND(100*promotion/churn,2) AS no_promotion_churn_rate
+FROM (
+  SELECT  
+  department,
+  sum(case when left_company = 1 then 1 else 0 end) as churn,
+  sum(case when left_company = 0 then 1 else 0 end) as stay,
+  sum(case when promotion_last_5years = 1 and left_company =1 then 1 else 0 end) as promotion,
+  sum(case when promotion_last_5years = 0 and left_company =1 then 1 else 0 end) as no_promotion,
+  count(*) as total_employees
+  FROM `valiant-cycle-377703.Home_test.HRM` 
+  GROUP BY department) AS fact2
+GROUP BY department, churn, stay, total_employees,promotion,no_promotion
+ORDER BY turnover_rate DESC;
+
+-- This is a clear that the majority of the people who weren't promoted ended up staying in the company
+-- Project Involvement vs Turnover Rate
+SELECT department,
+        sum(number_project) as total_project, 
+        avg(number_project) as avg_project
+FROM `valiant-cycle-377703.Home_test.HRM` 
+GROUP BY department
+Order BY total_project;
+
+-- The data is telling a different story: There is no imbalance project among departments
+-- Analysis : Employee Evaluation VS turnover rate
+SELECT left_company,avg(last_evaluation) as avg_evaluation
+FROM `valiant-cycle-377703.Home_test.HRM`
+GROUP BY left_company;
+SELECT round(stddev(last_evaluation),2) as std_evaluation
+FROM `valiant-cycle-377703.Home_test.HRM`;
+SELECT round(stddev(left_company),2) as std_left_company
+FROM `valiant-cycle-377703.Home_test.HRM`;
+
+-- We can just use the p and q values we calculated earlier :
+-- The result of Point-Biserial Correlation factor is 0.013 -> is a very weak correlation, the correlation score suggests that a low performance score is not a decisive factor for employee's turnover.
+
+-- Salary VS Turnover rate
+SELECT *,
+ROUND(100*churn/total_employees,2) AS turnover_rate
+FROM (
+  SELECT  
+  salary,
+  sum(case when left_company = 1 then 1 else 0 end) as churn,
+  sum(case when left_company = 0 then 1 else 0 end) as stay,
+  count(*) as total_employees
+  FROM `valiant-cycle-377703.Home_test.HRM` 
+  GROUP BY salary) AS fact
+GROUP BY salary, churn, stay, total_employees
+ORDER BY turnover_rate DESC;
+
+-- Here we compared the employee retention rate in different salary groups, we found that the employee churn rate was highest(~21%) in low salary group. So salary was responsible for high churn rate.
+
+-- Average Working Hours VS Employee Churn Rate
+
+SELECT left_company, avg(average_montly_hours) as avg_hours
+FROM `valiant-cycle-377703.Home_test.HRM` 
+GROUP BY left_company;
+
+-- No significant difference in average working hours between the two groups.
+-- How long did employees who have left the company work for the company?
+SELECT left_company
+, avg(time_spend_company) as avg_time_year
+, min(time_spend_company) as min
+, max(time_spend_company) as max
+FROM `valiant-cycle-377703.Home_test.HRM` 
+GROUP BY left_company;
+-- The table shows that the average time that employees who left the company had been with the company was 3.88 years, and the minimum time was 2 years. This suggests that employee turnover is relatively high at this company 
+
+SELECT left_company,department, COUNT(*) employee_count, SUM(Work_accident) acc_count, SUM(Work_accident)/COUNT(*) pct
+FROM `valiant-cycle-377703.Home_test.HRM` 
+Where left_company =1
+GROUP BY left_company, department
+ORDER BY left_company, pct DESC;
+
