@@ -20,12 +20,16 @@ Take a look at our dataset, we have 10 attributes in detail as:
 
 ## B. Project Plan & Hypothesis
 1. Data cleaning: removing duplicates, correcting null values, and missing values, fixing typos, and converting data types properly. ( with patience and care!!! This step is very important to have accurate data findings!)
+
 2. Export data to SQL database finding relationships in employee metrics
+
 3. Our hypothesis is that a low satisfaction rate made employee quit their jobs, we have to first test if this was a high conversion rate between low satisfaction and turnover rate. Then find out which metrics are highly correlated with a low satisfaction score.
+
 4. We are going to look at relationships between employee satisfaction vs salary, satisfaction conversion rate to turnover rate, and how their promotion or project involvement impacted satisfaction ratings.
+
 5. Export data set to visualizations in Tableau, we need to create storytelling visualizations.
 
-## C.Recommendations
+## C. Recommendations
 These recommendations were implemented from SQL's results and data visualization via PBI
 1. Focus on increasing promotion system  within these departments: HR, Accounting, Technical, Support and Sales. It is observed that  departments have a very high churn rate (18%) yet they have very few promotions or even no promotions in the department. The reasoning behind this strategy is that with employees,develop a clear promotion system to enable internal growth in these departments, it is important for employees to see a clear path of position advancement within the company
 
